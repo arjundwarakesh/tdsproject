@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
 
 # Upgrade pip globally
 RUN pip3 install --upgrade pip
-
+RUN pip install SpeechRecognition
 # Download and install uv
 ADD https://astral.sh/uv/install.sh /uv-installer.sh
 RUN sh /uv-installer.sh && rm /uv-installer.sh
