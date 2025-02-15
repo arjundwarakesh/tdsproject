@@ -49,7 +49,7 @@ from bs4 import BeautifulSoup
 import uvicorn
 import textwrap
 import pandas
-import speechrecognition
+
 
 # Initialize FastAPI app
 app = FastAPI()
