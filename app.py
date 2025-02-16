@@ -12,7 +12,10 @@
 #     "markdown2",
 #     "beautifulsoup4",
 #     "pandas",
-#     "speechrecognition"
+#     "speechrecognition",
+#     "ffmpeg-python",
+#     "gitpython",
+#     "duckdb"
 # ]
 # system-dependencies = [
 #     "nodejs",
@@ -323,7 +326,7 @@ with open(output_file, 'w') as f:
         ### **Task: Extract First Lines from Recent Log Files**
 
 #### **Objective**
-Your goal is to **extract the first line** from the **10 most recent `.log` files** located in the directory `input_folder` and save them in `output_folder/logs-recent.txt`.
+Your goal is to **extract the first line** from the **10 most recent `.log` files** located in the directory `input_folder` and save them in `output_folder`.
 
 #### **Instructions**
 1. **Identify the 10 most recent log files**:
@@ -338,7 +341,7 @@ Your goal is to **extract the first line** from the **10 most recent `.log` file
    - Ignore empty lines or corrupted files.
 
 3. **Format the Output**:
-   - Each extracted first line should be **written to a new line** in `output_folder/logs-recent.txt`.
+   - Each extracted first line should be **written to a new line** in `output_folder`.
    - Ensure the order is **newest to oldest**.
    - **Ensure each line is written as raw text with NO extra quotes.**
 
@@ -353,16 +356,15 @@ Your goal is to **extract the first line** from the **10 most recent `.log` file
         Task Description:
         {task_description}
 
-        - Count occurrences of Wednesdays in a file.
+        - Count occurrences of any one of seven days in week in a file for example Wednesdays .
         - Handle multiple date formats.
          date formats:
         - "%Y-%m-%d"
         - "%d-%b-%Y"
         - "%b %d, %Y"
         - "%Y/%m/%d %H:%M:%S"
+        - or any other formats
         - Output ONLY the final computed number, forbid any quotes, newlines, or formatting. The output should be **exactly** as it would appear in a `.txt` file.
-
-
         """,
         "sort_contacts": f"""
         Task Description:
@@ -374,7 +376,6 @@ Your goal is to **extract the first line** from the **10 most recent `.log` file
         "markdown_indexing": f"""
         Task Description:
         {task_description}
-
         - Extract `H1` titles from Markdown files.
         - Generate an index mapping filenames to titles.
         - Please scan for sub folders also and no extra lines
@@ -384,94 +385,102 @@ Your goal is to **extract the first line** from the **10 most recent `.log` file
         Task Description:
         {task_description}
 
-        Query `ticket-sales.db` from `input_file` to compute total revenue from "Gold" ticket sales.
+        for example Query `ticket-sales.db` from `input_file` to compute total revenue from "Gold" ticket sales.
         Write the computed revenue to `output_file.Output only the value in 2f Float in plain text with out any double quotes
         """,
-       "fetch_api": f"""
-Task Description:
-{task_description}
+"fetch_api": f"""
+  Task Description:
+  {task_description}
 
-- Fetch data from an API endpoint using `requests`.
-- Handle authentication and error handling for failed requests.
-- Ensure the response is correctly formatted as JSON before saving.
-- Save the API response to the output file.
-""",
+  - Fetch data from an API endpoint using `requests`.
+  - Handle authentication and error handling for failed requests.
+  - Ensure the response is correctly formatted as JSON before saving.
+  - Save the API response to the specified output file.
+  - Implement logging to track API requests and responses.
+  """,
 
-"git_clone_commit": f"""
-Task Description:
-{task_description}
+  "git_clone_commit": f"""
+  Task Description:
+  {task_description}
 
-- Clone the Git repository using `subprocess`.
-- Ensure the repository exists and is accessible.
-- Modify or add a new file to the repository.
-- Use `git` commands to commit and push changes.
-- Verify the commit before finalizing the process.
-""",
+  - Clone the Git repository using `gitpython`.
+  - Ensure the repository exists and is accessible.
+  - Modify or add a new file to the repository.
+  - Use `git` commands to commit and push changes.
+  - Verify the commit before finalizing the process.
+  - Handle authentication for private repositories.
+  """,
 
-"run_sql_query": f"""
-Task Description:
-{task_description}
+  "run_sql_query": f"""
+  Task Description:
+  {task_description}
 
-- Connect to the SQLite or DuckDB database.
-- Execute the specified SQL query using `sqlite3` or `duckdb`.
-- Fetch the query results and structure them in JSON format.
-- Save the query output to the output file.
-- Handle database connection errors gracefully.
-""",
+  - Connect to the SQLite or DuckDB database.
+  - Execute the specified SQL query using `sqlite3` or `duckdb`.
+  - Fetch the query results and structure them in JSON format or any other format specified in task description.
+  - Save the query output to the output file.
+  - Handle database connection errors gracefully.
+  - Validate query execution and return meaningful error messages.
+  """,
 
-"web_scraping": f"""
-Task Description:
-{task_description}
+  "web_scraping": f"""
+  Task Description:
+  {task_description}
 
-- Extract webpage content using `beautifulsoup4`.
-- Parse and filter the relevant text or data elements.
-- Handle page navigation and pagination if required.
-- Save the extracted content in structured format (JSON or TXT).
-- Ensure error handling for inaccessible pages or missing elements.
-""",
+  - Extract webpage content using `beautifulsoup4`.
+  - Parse and filter the relevant text or data elements.
+  - Handle page navigation and pagination if required.
+  - Save the extracted content in structured format (JSON or TXT) or any other format specified in task description.
+  - Ensure error handling for inaccessible pages or missing elements.
+  - Respect `robots.txt` and prevent excessive requests (use rate limiting).
+  """,
 
-"compress_image": f"""
-Task Description:
-{task_description}
+  "compress_image": f"""
+  Task Description:
+  {task_description}
 
-- Read the input image file using `pillow`.
-- Resize or compress the image while maintaining aspect ratio.
-- Adjust quality settings to optimize file size.
-- Save the compressed image in the output file.
-- Ensure image format and metadata remain intact.
-""",
+  - Read the input image file using `pillow`.
+  - Resize or compress the image while maintaining aspect ratio.
+  - Adjust quality settings to optimize file size.
+  - Save the compressed image in the output file.
+  - Ensure image format and metadata remain intact.
+  - Provide options for different compression levels.
+  """,
 
-"transcribe_audio": f"""
-Task Description:
-{task_description}
+  "transcribe_audio": f"""
+  Task Description:
+  {task_description}
 
-- Convert an MP3 audio file to text using `pydub` and `speechrecognition`.
-- Preprocess the audio by converting it to WAV format.
-- Use an ASR model (Google Speech API or another) to generate a transcript.
-- Save the transcribed text to the output file.
-- Handle errors for corrupted or unsupported audio files.
-""",
+  - Convert an MP3 audio file to text using `pydub` and `speechrecognition`.
+  - Preprocess the audio by converting it to WAV format.
+  - Use an ASR model (Google Speech API or another) to generate a transcript.
+  - Save the transcribed text to the output file.
+  - Handle errors for corrupted or unsupported audio files.
+  - Implement language detection and multiple language support.
+  """,
 
-"markdown_to_html": f"""
-Task Description:
-{task_description}
+  "markdown_to_html": f"""
+  Task Description:
+  {task_description}
 
-- Convert the input Markdown file to HTML using `markdown2`.
-- Preserve the original structure, links, and formatting.
-- Ensure special characters and embedded content are rendered properly.
-- Save the converted HTML content to the output file.
-""",
+  - Convert the input Markdown file to HTML using `markdown2`.
+  - Preserve the original structure, links, and formatting.
+  - Ensure special characters and embedded content are rendered properly.
+  - Save the converted HTML content to the output file.
+  - Implement an option to include additional CSS styles.
+  """,
 
-"csv_filter": f"""
-Task Description:
-{task_description}
+  "csv_filter": f"""
+  Task Description:
+  {task_description}
 
-- Read the CSV file using `pandas`.
-- Filter rows based on the specified conditions (e.g., column values).
-- Save the filtered output in JSON format.
-- Handle CSV parsing errors and ensure data consistency.
-""",
-      
+  - Read the CSV file using `pandas`.
+  - Filter rows based on the specified conditions (e.g., column values).
+  - Save the filtered output in JSON format.
+  - Handle CSV parsing errors and ensure data consistency.
+  - Support multiple filter conditions dynamically.
+  - Implement an option for case-sensitive or case-insensitive filtering.
+  """,
         "extract_credit_card": f"""
         Task Description:
 {task_description}
@@ -480,8 +489,8 @@ Your goal is to **extract only the credit card number** from an image in a **cyb
 
 ### **Steps to Follow**
 1. **Read the Image File**: Load the input image file input_file.
-2. **Convert Image to Base64**: Encode the image as a **Base64 data URI**.
-3. **Submit to LLM**: Send the encoded image along with this structured prompt to `{API_URL}` varaiable, using the provided token `{OPENAI_API_KEY}` variable or os.environ.get("AIPROXY_TOKEN").
+2. Pass the Image as "type": "image_url", "image_url": "url": data_uri to LLM
+3. **Submit to LLM**: Send the data_uri image along with this structured prompt to `{API_URL}` varaiable, using the provided token `{OPENAI_API_KEY}` variable or os.environ.get("AIPROXY_TOKEN") and for model use gpt-4o-mini.
 4. **Extract Only the Credit Card Number**:
    - Identify the **16-digit numeric sequence** that represents the credit card number.
    - Ignore any text, expiry dates, names, CVV, or additional information.
@@ -490,19 +499,22 @@ Your goal is to **extract only the credit card number** from an image in a **cyb
    - Double-check that the extracted number is a **valid credit card format** (length & structure).
    - Ensure **no extra characters** are present.
    - Remove all spaces before writing to `output_file`.
+   - Ignore any additional text such as:
+   - Expiry dates (MM/YY or MM/YYYY)
+   - Cardholder names
+   - CVV codes
+   - Bank names or logos
 6. **Output Specification**:
    - Save only the **cleaned credit card number** as a **plain integer** in output_file.
    - Do not store any other metadata or information.
 
 """,
-
-
         "similar_comments": f"""
 Task Description:
 {task_description}
 - Read comments from the file
 - Prompt an external LLM (GPT-4o-mini) via API to identify the most similar pair pass the contents using
-token {OPENAI_API_KEY} variable or os.environ.get("AIPROXY_TOKEN") and {API_URL} variable
+token {OPENAI_API_KEY} variable or os.environ.get("AIPROXY_TOKEN") and {API_URL} variable respond back only the similar comments
 - Write only the comments to the output file one per line
 - Handle API errors gracefully
 """,
