@@ -24,6 +24,7 @@
 # ///
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import PlainTextResponse
 import os
 import subprocess
 import sys
@@ -59,6 +60,7 @@ chroma_client = chromadb.PersistentClient(path="./chroma")
 collection = chroma_client.get_or_create_collection(name="tasks")
 
 # OpenAI API setup
+
 OPENAI_API_KEY = os.environ.get("AIPROXY_TOKEN")
 API_URL = os.environ.get("API_URL", "https://aiproxy.sanand.workers.dev/openai/v1/chat/completions")
 
@@ -132,7 +134,7 @@ def sanitize_and_execute_code(python_code, dependencies, filename):
         ["uv", "run", filename],  # Runs the script using uv
         capture_output=True,
         text=True,
-        timeout=30
+        timeout=60
     )
                 if result.returncode == 0:
                     return result.stdout.strip()
@@ -178,6 +180,7 @@ def classify_task(task_description):
     - "gold_ticket_sales" → If the task involves querying a sales database for "Gold" ticket revenue.
     - "extract_credit_card" → If the task involves extracting credit card numbers from images or files.
     - "markdown_indexing" → If the task involves scanning `.md` files for H1 titles and generating an index.
+    - "lines_logs" → To **extract the first line** from the **10 most recent `.log` files**.
     - "similar_comments" → If the task involves identifying similar comments using embeddings.
     - "email_processing" → If the task involves extracting structured data from email messages.
     
@@ -249,7 +252,24 @@ def query_gpt(task_description: str):
     - **Automatically handle missing dependencies** by listing them under `"dependencies"`.
     - Ensure the script **does not exceed 20 seconds** and includes **retry logic**.
     - Validate the generated script using `black` before execution.
+### INSTRUCTIONS: STRICT OUTPUT FORMATTING REQUIRED
 
+Generate the required response in **strictly raw text format**, ensuring the following rules:
+    - **NO quotation marks** around numbers, text.
+     - **NO additional formatting characters** (e.g., code blocks, brackets, escape characters).
+     - **NO extra whitespace or newlines** beyond what is required.
+     - **Numbers should be written as raw integers or decimals** (e.g., `147` instead of `"147"`).
+     - **JSON output must be minified** (no indentation, spaces only where required).
+     - **Plain text files should contain only the necessary content** (no extra characters, headers, or metadata).
+     - **Emails and numbers should be written exactly as they appear**, without modifications.
+### **✅ Example Code to Follow:**
+```python
+with open(output_file, 'w') as f:
+    f.write(f"wednesday_count\n")  # Ensure no extra quotes or formatting
+   - **For text files (`.txt`)**:
+   - Do **not** wrap the content in quotes.
+#### **Examples:**
+- Example: `147` (✅ Correct) | `"147"` (❌ Incorrect)
     ---
     ## ** Security & Compliance Rules**
     - **B1: Data outside `/data/` must NEVER be accessed or exfiltrated.**
@@ -271,15 +291,64 @@ def query_gpt(task_description: str):
         subprocess.run(["uv", "run", "script.py", "email"])
         ```
         """,
+        "email_processing": f"""
+        Task Description:
+        {task_description}
+        - Extract only the sender's email address and write with out any double quotes an no extra spaces
+        - Sender will be in the format of From:
+        Example:
+        Correct : wsalazar@example.com
+        Incorrect: "\"Daniel Shaw\" <wsalazar@example.com>"
+        """,
         "format_markdown": f"""
         Task Description:
         {task_description}
 
-         - Use npx.cmd instead of npx to support Windows-based execution.
          - Wrap subprocess calls in a try-except block to handle errors gracefully.
          - Raise proper HTTP exceptions for FileNotFoundError and subprocess.CalledProcessError.
          - Return a success message when formatting is completed.
+         - Try specifying the full path to npx:
+         for example
+         subprocess.run(
+        ['/usr/local/bin/npx', 'prettier@3.4.2', '--stdin-filepath', '/data/format.md'],
+        check=True,
+        capture_output=True,
+        text=True
+    )
         """,
+
+        "lines_logs": f"""
+        Task Description:
+        {task_description}
+        ### **Task: Extract First Lines from Recent Log Files**
+
+#### **Objective**
+Your goal is to **extract the first line** from the **10 most recent `.log` files** located in the directory `input_folder` and save them in `output_folder/logs-recent.txt`.
+
+#### **Instructions**
+1. **Identify the 10 most recent log files**:
+   - List all `.log` files in `input_folder`.
+   - Sort them by **modification time (newest first).**
+   - Select the **10 most recent** log files.
+
+2. **Extract Only the First Line**:
+   - Open each of the 10 files.
+   - Read **only the first line** of each file.
+   - All the lines should be extracted in new line in the output file
+   - Ignore empty lines or corrupted files.
+
+3. **Format the Output**:
+   - Each extracted first line should be **written to a new line** in `output_folder/logs-recent.txt`.
+   - Ensure the order is **newest to oldest**.
+   - **Ensure each line is written as raw text with NO extra quotes.**
+
+#### **Restrictions**
+- Do **not** include file names or timestamps in the output.
+- Do **not** add extra text, headers, or separators.
+- **Output should be a plain text with out any double quotes.**
+
+#### **Expected Output Format (Example)**
+ """,
         "date_parsing": f"""
         Task Description:
         {task_description}
@@ -291,6 +360,8 @@ def query_gpt(task_description: str):
         - "%d-%b-%Y"
         - "%b %d, %Y"
         - "%Y/%m/%d %H:%M:%S"
+        - Output ONLY the final computed number, forbid any quotes, newlines, or formatting. The output should be **exactly** as it would appear in a `.txt` file.
+
 
         """,
         "sort_contacts": f"""
@@ -298,7 +369,7 @@ def query_gpt(task_description: str):
         {task_description}
 
         - Sort contacts in a JSON file by last name and first name.
-        and write the sorted result to output file
+        and write the sorted result to output file and make sure the output file format matches the input file format interms of spaces, Ensure that the JSON is minified (without indentation).
         """,
         "markdown_indexing": f"""
         Task Description:
@@ -306,13 +377,15 @@ def query_gpt(task_description: str):
 
         - Extract `H1` titles from Markdown files.
         - Generate an index mapping filenames to titles.
+        - Please scan for sub folders also and no extra lines
+        - usee single quotes instead of double quotes for key value pairs
         """,
         "gold_ticket_sales": f"""
         Task Description:
         {task_description}
 
         Query `ticket-sales.db` from `input_file` to compute total revenue from "Gold" ticket sales.
-        Write the computed revenue to `output_file.
+        Write the computed revenue to `output_file.Output only the value in 2f Float in plain text with out any double quotes
         """,
        "fetch_api": f"""
 Task Description:
@@ -402,20 +475,35 @@ Task Description:
         "extract_credit_card": f"""
         Task Description:
 {task_description}
+### **Task Overview**
+Your goal is to **extract only the credit card number** from an image in a **cybersecurity-compliant manner**.
 
-- Read the image file input_file.
-- Convert the image into **base64** format and encode it as a **data URI**.
-- Send the encoded image to the **AI Proxy API** for text extraction.
-- Extract only the **credit card number** from the response.
--Doublec check before saving the card number to output_file.
-- Remove all spaces before saving the card number to output_file.""",
+### **Steps to Follow**
+1. **Read the Image File**: Load the input image file input_file.
+2. **Convert Image to Base64**: Encode the image as a **Base64 data URI**.
+3. **Submit to LLM**: Send the encoded image along with this structured prompt to `{API_URL}` varaiable, using the provided token `{OPENAI_API_KEY}` variable or os.environ.get("AIPROXY_TOKEN").
+4. **Extract Only the Credit Card Number**:
+   - Identify the **16-digit numeric sequence** that represents the credit card number.
+   - Ignore any text, expiry dates, names, CVV, or additional information.
+   - **Ensure the extracted number is formatted correctly** without any spaces or special characters.
+5. **Validation Before Saving**:
+   - Double-check that the extracted number is a **valid credit card format** (length & structure).
+   - Ensure **no extra characters** are present.
+   - Remove all spaces before writing to `output_file`.
+6. **Output Specification**:
+   - Save only the **cleaned credit card number** as a **plain integer** in output_file.
+   - Do not store any other metadata or information.
+
+""",
+
 
         "similar_comments": f"""
 Task Description:
 {task_description}
 - Read comments from the file
-- Prompt an external LLM (GPT-4o-mini) via API to identify the most similar pair
-- Write the results to the output file
+- Prompt an external LLM (GPT-4o-mini) via API to identify the most similar pair pass the contents using
+token {OPENAI_API_KEY} variable or os.environ.get("AIPROXY_TOKEN") and {API_URL} variable
+- Write only the comments to the output file one per line
 - Handle API errors gracefully
 """,
     }.get(task_category, None)
@@ -458,13 +546,6 @@ Task Description:
     return response.json()
 
 
-# Function to query the LLM for code generation
-
-    python_code = ""
-    dependencies = []
-
-# Endpoint to run a task
-# POST /run?task=<task description>
 @app.post("/run")
 def run_task(task: str):
     """
@@ -505,6 +586,7 @@ def run_task(task: str):
         # Handle unexpected agent errors (500)
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
+
 @app.get("/read")
 def read_file(path: str):
     """
@@ -523,17 +605,16 @@ def read_file(path: str):
 
         # Read file content
         with open(path, "r", encoding="utf-8") as file:
-            content = file.read()
+            content = file.read().strip()  
 
-        return {"status": "success", "file": path, "content": content}
+        return PlainTextResponse(content)
 
     except HTTPException as e:
-        # Raise HTTP exceptions for known issues
-        raise e
+        raise e 
 
     except Exception as e:
-        # Handle unexpected agent errors (500)
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
 
 
 if __name__ == "__main__":
